@@ -1,0 +1,33 @@
+#!/bin/sh
+# Read base MAC from ledeinfo partition (mtd5, offset 0x18, 6 bytes)
+# Uses dd for offset/count (BusyBox hexdump doesn't support -s/-n flags)
+
+. /lib/functions.sh
+
+mac=$(dd if=/dev/mtd5 bs=1 skip=24 count=6 2>/dev/null | hexdump -e '5/1 "%02x:" 1/1 "%02x
+"')
+
+# Validate: must be 17 chars (xx:xx:xx:xx:xx:xx) and not all zeros
+if [ ${#mac} -ne 17 ] || [ "$mac" = "00:00:00:00:00:00" ]; then
+    logger -t macaddr "WARNING: failed to read MAC from ledeinfo, using fallback"
+    mac="02:00:00:00:00:01"
+fi
+
+# Compute WAN MAC (base + 1) using macaddr_add from functions.sh
+wan_mac=$(macaddr_add "$mac" 1)
+
+# Set LAN MAC on the br-lan device section (DSA bridge requires device-level MAC)
+uci set network.@device[0].macaddr="$mac"
+
+# Set WAN MAC via a device section
+uci set network.wan_dev=device
+uci set network.wan_dev.name='wan'
+uci set network.wan_dev.macaddr="$wan_mac"
+
+uci commit network
+
+# Set hostname
+uci set system.@system[0].hostname='M01K43-PMOD'
+uci commit system
+
+logger -t macaddr "LAN MAC: $mac, WAN MAC: $wan_mac"

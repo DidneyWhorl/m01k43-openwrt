@@ -1,0 +1,48 @@
+#!/bin/sh
+# Restore system from recovery image in ubi2
+# Run from failsafe mode or normal shell if system is unstable
+
+echo "=== M01K43 Recovery Restore ==="
+echo "This will flash the recovery image from ubi2 with clean config."
+echo "All current settings will be replaced by uci-defaults."
+echo ""
+
+# Check if running interactively -- prompt for confirmation
+if [ -t 0 ]; then
+    printf "Continue? [y/N] "
+    read -r confirm
+    case "$confirm" in
+        y|Y|yes|YES) ;;
+        *) echo "Aborted."; exit 0 ;;
+    esac
+fi
+
+# Attach ubi2 as ubi1
+echo "Attaching ubi2..."
+ubidetach -d 1 2>/dev/null || true
+ubiattach -p /dev/mtd8 -d 1 || { echo "FAILED: cannot attach ubi2"; exit 1; }
+
+# Check recovery volume
+if [ ! -e /dev/ubi1_0 ]; then
+    echo "FAILED: no recovery volume in ubi2"
+    echo "Write one first: recovery-write <sysupgrade.bin>"
+    ubidetach -d 1 2>/dev/null
+    exit 1
+fi
+
+# Read to RAM
+echo "Reading recovery image..."
+cat /dev/ubi1_0 > /tmp/recovery.bin 2>/dev/null
+ubidetach -d 1 2>/dev/null
+
+if [ ! -s /tmp/recovery.bin ]; then
+    echo "FAILED: recovery image empty or read error"
+    exit 1
+fi
+
+SIZE=$(wc -c < /tmp/recovery.bin)
+echo "Recovery image: $SIZE bytes"
+echo "Flashing (clean config)..."
+
+sysupgrade -n /tmp/recovery.bin
+# Does not return -- sysupgrade reboots

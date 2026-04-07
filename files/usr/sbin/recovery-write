@@ -1,0 +1,55 @@
+#!/bin/sh
+# Store a sysupgrade image in ubi2 as the recovery image
+# Usage: recovery-write <sysupgrade.bin>
+#   or:  recovery-write --current  (saves the currently-running image)
+
+set -e
+
+IMAGE="$1"
+
+if [ "$IMAGE" = "--current" ]; then
+    # Find the current sysupgrade image from build info
+    echo "Error: --current not yet implemented. Provide a sysupgrade.bin path." >&2
+    exit 1
+fi
+
+if [ -z "$IMAGE" ] || [ ! -f "$IMAGE" ]; then
+    echo "Usage: recovery-write <sysupgrade.bin>" >&2
+    echo "Stores the image in ubi2 (mtd8) as a recovery image." >&2
+    exit 1
+fi
+
+SIZE=$(wc -c < "$IMAGE")
+echo "Recovery image: $IMAGE ($SIZE bytes)"
+
+# Detach ubi2 if already attached
+ubidetach -d 1 2>/dev/null || true
+
+# Format ubi2 partition
+echo "Formatting ubi2 (mtd8)..."
+ubiformat /dev/mtd8 -y -q || { echo "FAILED: ubiformat"; exit 1; }
+
+# Attach ubi2 as ubi1
+echo "Attaching ubi2..."
+ubiattach -p /dev/mtd8 -d 1 || { echo "FAILED: ubiattach"; exit 1; }
+
+# Create static volume sized to the image
+echo "Creating recovery volume..."
+ubimkvol /dev/ubi1 -N recovery -s "$SIZE" -t static || {
+    echo "FAILED: ubimkvol"
+    ubidetach -d 1 2>/dev/null
+    exit 1
+}
+
+# Write image to static volume
+echo "Writing image to ubi2..."
+ubiupdatevol /dev/ubi1_0 "$IMAGE" || {
+    echo "FAILED: ubiupdatevol"
+    ubidetach -d 1 2>/dev/null
+    exit 1
+}
+
+ubidetach -d 1 2>/dev/null
+
+echo "Done. Recovery image stored in ubi2."
+echo "To restore: boot into failsafe mode (hold reset ~2s during boot), then run: recovery-restore"

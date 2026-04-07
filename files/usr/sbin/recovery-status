@@ -1,0 +1,49 @@
+#!/bin/sh
+# Check recovery system status
+
+echo "=== M01K43 Recovery Status ==="
+
+# Check fw_env.config
+if [ -f /etc/fw_env.config ]; then
+    echo "U-Boot env config: OK (/etc/fw_env.config)"
+else
+    echo "U-Boot env config: MISSING"
+fi
+
+# Check recovery utilities
+for cmd in recovery-write recovery-restore; do
+    if command -v $cmd >/dev/null 2>&1; then
+        echo "Utility $cmd: OK"
+    else
+        echo "Utility $cmd: MISSING"
+    fi
+done
+
+# Check ubi2 recovery image
+echo ""
+echo "--- Recovery Image (ubi2) ---"
+ubidetach -d 1 2>/dev/null || true
+if ubiattach -p /dev/mtd8 -d 1 2>/dev/null; then
+    if [ -e /dev/ubi1_0 ]; then
+        SIZE=$(ubinfo /dev/ubi1_0 2>/dev/null | grep "Amount of data" | awk '{print $NF}')
+        NAME=$(ubinfo /dev/ubi1_0 2>/dev/null | grep "Name:" | awk '{print $NF}')
+        echo "Volume: $NAME"
+        echo "Image size: $SIZE"
+        echo "Status: READY"
+    else
+        echo "Status: NO RECOVERY IMAGE"
+        echo "Write one: recovery-write <sysupgrade.bin>"
+    fi
+    ubidetach -d 1 2>/dev/null
+else
+    echo "Status: ubi2 NOT FORMATTED"
+    echo "Write one: recovery-write <sysupgrade.bin>"
+fi
+
+echo ""
+echo "--- Recovery Trigger ---"
+echo "1. Boot into failsafe mode (hold reset ~2s during boot)"
+echo "2. SSH to 192.168.1.1"
+echo "3. Run: recovery-restore"
+echo ""
+echo "Or run 'recovery-restore' directly from a working SSH session."

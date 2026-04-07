@@ -1,0 +1,11 @@
+#!/bin/sh
+# Set root password and configure dropbear
+
+# Set root password to "internet"
+echo -e "internet\ninternet" | passwd root
+
+# Bind dropbear to LAN interface only
+uci set dropbear.@dropbear[0].Interface='lan'
+uci commit dropbear
+
+exit 0

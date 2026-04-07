@@ -1,0 +1,50 @@
+#!/bin/sh
+# Configure LED triggers
+
+# Status LED (blue) - controlled by signal-led-monitor, set to none
+uci set system.led_blue='led'
+uci set system.led_blue.name='Status'
+uci set system.led_blue.sysfs='lede:blue:blue'
+uci set system.led_blue.trigger='none'
+uci set system.led_blue.default='0'
+
+# Error LED (red) - controlled by signal-led-monitor, set to none
+uci set system.led_red='led'
+uci set system.led_red.name='Error'
+uci set system.led_red.sysfs='lede:blue:red'
+uci set system.led_red.trigger='none'
+uci set system.led_red.default='0'
+
+# WiFi LED - phy0 TX packet indicator
+uci set system.led_wifi='led'
+uci set system.led_wifi.name='WiFi'
+uci set system.led_wifi.sysfs='lede:blue:wifi'
+uci set system.led_wifi.trigger='phy0radio'
+
+# WAN LED - netdev trigger on wwan0
+uci set system.led_wan='led'
+uci set system.led_wan.name='WAN'
+uci set system.led_wan.sysfs='lede:blue:wan'
+uci set system.led_wan.trigger='netdev'
+uci set system.led_wan.dev='wwan0'
+uci set system.led_wan.mode='link tx rx'
+
+# LAN2 LED - netdev trigger
+uci set system.led_lan2='led'
+uci set system.led_lan2.name='LAN2'
+uci set system.led_lan2.sysfs='lede:blue:lan2'
+uci set system.led_lan2.trigger='netdev'
+uci set system.led_lan2.dev='lan2'
+uci set system.led_lan2.mode='link tx rx'
+
+# LAN3 LED - netdev trigger
+uci set system.led_lan3='led'
+uci set system.led_lan3.name='LAN3'
+uci set system.led_lan3.sysfs='lede:blue:lan3'
+uci set system.led_lan3.trigger='netdev'
+uci set system.led_lan3.dev='lan3'
+uci set system.led_lan3.mode='link tx rx'
+
+uci commit system
+
+exit 0

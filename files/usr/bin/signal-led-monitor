@@ -1,0 +1,92 @@
+#!/bin/sh
+# Signal LED monitor for M01K43
+# Polls modem signal and updates all signal/status LEDs
+#
+# Top status LEDs (blue GPIO5 + red GPIO6):
+#   5G connected:  solid BLUE (blue on, red off)
+#   4G only:       PURPLE (blue on, red on)
+#   Offline/error: solid RED (blue off, red on)
+#
+# Side signal LEDs:
+#   5G good (RSRP > -100): 5gblue on
+#   5G weak (RSRP <= -100): 5gyellow on
+#   4G good (RSRP > -100): 4gblue on
+#   4G weak (RSRP <= -100): 4gyellow on
+
+LED_STATUS_BLUE="/sys/class/leds/lede:blue:blue/brightness"
+LED_STATUS_RED="/sys/class/leds/lede:blue:red/brightness"
+LED_4G_BLUE="/sys/class/leds/lede:blue:4gblue/brightness"
+LED_4G_YELLOW="/sys/class/leds/lede:blue:4gyellow/brightness"
+LED_5G_BLUE="/sys/class/leds/lede:blue:5gblue/brightness"
+LED_5G_YELLOW="/sys/class/leds/lede:blue:5gyellow/brightness"
+
+all_off() {
+    echo 0 > "$LED_STATUS_BLUE"
+    echo 0 > "$LED_STATUS_RED"
+    echo 0 > "$LED_4G_BLUE"
+    echo 0 > "$LED_4G_YELLOW"
+    echo 0 > "$LED_5G_BLUE"
+    echo 0 > "$LED_5G_YELLOW"
+}
+
+while true; do
+    # Check if QMI device exists
+    if [ ! -c /dev/cdc-wdm0 ]; then
+        all_off
+        echo 255 > "$LED_STATUS_RED"
+        sleep 15
+        continue
+    fi
+
+    # Get signal info from modem
+    SIGNAL=$(uqmi -d /dev/cdc-wdm0 --get-signal-info 2>/dev/null)
+
+    if [ -z "$SIGNAL" ]; then
+        all_off
+        echo 255 > "$LED_STATUS_RED"
+        sleep 15
+        continue
+    fi
+
+    # Extract connection type and RSRP
+    TYPE=$(echo "$SIGNAL" | jsonfilter -e '@.type' 2>/dev/null)
+    RSRP=$(echo "$SIGNAL" | jsonfilter -e '@.rsrp' 2>/dev/null)
+
+    # Reset all signal LEDs
+    echo 0 > "$LED_4G_BLUE"
+    echo 0 > "$LED_4G_YELLOW"
+    echo 0 > "$LED_5G_BLUE"
+    echo 0 > "$LED_5G_YELLOW"
+
+    case "$TYPE" in
+        *nr*|*NR*)
+            # 5G connected -- top LED solid blue
+            echo 255 > "$LED_STATUS_BLUE"
+            echo 0 > "$LED_STATUS_RED"
+            # Side signal LED based on strength
+            if [ -n "$RSRP" ] && [ "$RSRP" -gt -100 ] 2>/dev/null; then
+                echo 255 > "$LED_5G_BLUE"
+            else
+                echo 255 > "$LED_5G_YELLOW"
+            fi
+            ;;
+        *lte*|*LTE*)
+            # 4G only -- top LED purple (blue + red)
+            echo 255 > "$LED_STATUS_BLUE"
+            echo 255 > "$LED_STATUS_RED"
+            # Side signal LED based on strength
+            if [ -n "$RSRP" ] && [ "$RSRP" -gt -100 ] 2>/dev/null; then
+                echo 255 > "$LED_4G_BLUE"
+            else
+                echo 255 > "$LED_4G_YELLOW"
+            fi
+            ;;
+        *)
+            # Unknown/no connection -- top LED red
+            echo 0 > "$LED_STATUS_BLUE"
+            echo 255 > "$LED_STATUS_RED"
+            ;;
+    esac
+
+    sleep 15
+done

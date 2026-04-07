@@ -1,0 +1,43 @@
+#!/bin/sh
+# Configure WiFi AP, QMI cellular interface, and firewall
+
+# --- WiFi ---
+# radio0: 2.4GHz
+uci set wireless.radio0.disabled='0'
+uci set wireless.radio0.channel='1'
+uci set wireless.radio0.htmode='HE20'
+
+uci set wireless.default_radio0.ssid='M01K43-PMOD'
+uci set wireless.default_radio0.encryption='sae-mixed'
+uci set wireless.default_radio0.key='1Didneywhorl'
+
+# radio1: 5GHz
+uci set wireless.radio1.disabled='0'
+uci set wireless.radio1.channel='36'
+uci set wireless.radio1.htmode='HE80'
+
+uci set wireless.default_radio1.ssid='M01K43-PMOD'
+uci set wireless.default_radio1.encryption='sae-mixed'
+uci set wireless.default_radio1.key='1Didneywhorl'
+
+uci commit wireless
+
+# --- QMI cellular interface ---
+uci set network.wwan='interface'
+uci set network.wwan.proto='qmi'
+uci set network.wwan.device='/dev/cdc-wdm0'
+uci set network.wwan.apn='fast.T-Mobile.com'
+uci set network.wwan.auth='none'
+uci set network.wwan.pdptype='ipv4v6'
+
+uci commit network
+
+# --- Firewall: add wwan to wan zone ---
+# Find the wan zone index and add wwan to its network list
+WAN_ZONE=$(uci show firewall | grep "name='wan'" | head -1 | cut -d. -f1-2)
+if [ -n "$WAN_ZONE" ]; then
+    uci add_list "${WAN_ZONE}.network=wwan"
+    uci commit firewall
+fi
+
+exit 0
