@@ -2,7 +2,7 @@
 
 Custom OpenWrt firmware for the **AlwayLink M01K43** 5G CPE router, turning a budget Alibaba router into a fully functional 5G WiFi gateway.
 
-**Upstream PR:** [openwrt/openwrt#22818](https://github.com/openwrt/openwrt/pull/22818)
+**Mainline status:** Merged into OpenWrt on 2026-05-25 (commit `db7d264e`, [openwrt/openwrt#22818](https://github.com/openwrt/openwrt/pull/22818)).
 
 ## Hardware
 
