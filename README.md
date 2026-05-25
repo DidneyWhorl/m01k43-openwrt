@@ -23,7 +23,7 @@ Custom OpenWrt firmware for the **AlwayLink M01K43** 5G CPE router, turning a bu
 - 5G NR-SA via QMI (auto-connects on boot, dual-stack IPv4+IPv6)
 - WiFi 2.4GHz + 5GHz (802.11ax, SAE-mixed)
 - LAN switch (4 ports, GbE)
-- WAN (2.5GbE fixed-link)
+- WAN (2.5GbE via managed RTL8221B PHY, auto-negotiation)
 - LuCI web interface
 - Signal LED monitor (top LED shows 5G/4G/offline, side LEDs show signal strength)
 - Recovery system (known-good image in ubi2, restore via failsafe mode)
@@ -35,17 +35,15 @@ Custom OpenWrt firmware for the **AlwayLink M01K43** 5G CPE router, turning a bu
 See [docs/BUILD-GUIDE.md](docs/BUILD-GUIDE.md) for full instructions. Summary:
 
 ```bash
-# Clone OpenWrt
+# Clone OpenWrt (the M01K43 is in mainline as of commit db7d264e)
 git clone https://git.openwrt.org/openwrt/openwrt.git
 cd openwrt
 
-# Copy DTS and overlay
-cp /path/to/m01k43-openwrt/dts/mt7981b-alwaylink-m01k43.dts target/linux/mediatek/dts/
-cp -r /path/to/m01k43-openwrt/files/ files/
-
-# Add device block to filogic.mk (see patches/filogic-device-block.txt)
-
-# Configure
+# Select the board: make menuconfig ->
+#   Target System: MediaTek Ralink ARM
+#   Subtarget:     Filogic 8xx (MT798x)
+#   Target Profile: AlwayLink M01K43
+# ...or just drop in the provided build config:
 cp /path/to/m01k43-openwrt/config/diffconfig .config
 make defconfig
 
@@ -56,6 +54,18 @@ make package/compile package/install target/install V=s -j$(nproc)
 # Flash
 scp -O bin/targets/mediatek/filogic/*sysupgrade.bin root@192.168.1.1:/tmp/
 ssh root@192.168.1.1 'sysupgrade -n /tmp/*sysupgrade.bin'
+```
+
+For the **PMOD daily-driver** variant (modem power control via gpio-export, plus
+the signal-LED/recovery overlay), replace the in-tree DTS with the PMOD DTS and
+add the overlay before building:
+
+```bash
+cp /path/to/m01k43-openwrt/dts/mt7981b-alwaylink-m01k43.dts target/linux/mediatek/dts/
+# ...or regenerate it from the canonical DTS:
+# python3 /path/to/m01k43-openwrt/tools/generate-pmod-dts.py \
+#   target/linux/mediatek/dts/mt7981b-alwaylink-m01k43.dts -o /tmp/pmod.dts
+cp -r /path/to/m01k43-openwrt/files/ files/
 ```
 
 ## Repo Structure

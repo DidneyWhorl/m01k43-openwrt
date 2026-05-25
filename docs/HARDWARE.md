@@ -6,7 +6,7 @@
 |-----------|--------|
 | SoC | MediaTek MT7981B (Filogic 820) |
 | CPU | Dual-core ARM Cortex-A53 |
-| RAM | 256MB DDR3 (232MB usable, TF-A/BL31 reserves remainder) |
+| RAM | 256MB DDR3 |
 | SPI-NAND | 128MB (UBI rootfs, managed by NMBM) |
 | SPI-NOR | 4MB W25Q32 (bootloader, factory data, config) |
 
@@ -35,7 +35,7 @@
 
 - **Switch:** MediaTek MT7531 (DSA)
 - **LAN:** 4x GbE ports (port 0-3)
-- **WAN:** 1x 2.5GbE (port 5, fixed-link to gmac0)
+- **WAN:** 1x 2.5GbE via RTL8221B-VB-CG PHY (managed, auto-negotiation 100M/1G/2.5G), on mdio-bus address 6 (port 5)
 - **CPU port:** port 6, 2.5GbE uplink to SoC
 
 ## WiFi

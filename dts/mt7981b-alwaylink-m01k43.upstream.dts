@@ -27,7 +27,7 @@
 	};
 
 	memory@40000000 {
-		reg = <0 0x40000000 0 0x0e800000>;
+		reg = <0 0x40000000 0 0x10000000>;
 		device_type = "memory";
 	};
 
@@ -96,6 +96,7 @@
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_WLAN;
 			gpios = <&pio 9 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "phy0tpt";
 		};
 
 		led-signal-4g-yellow {
@@ -135,7 +136,8 @@
 		compatible = "mediatek,eth-mac";
 		reg = <0>;
 		phy-mode = "2500base-x";
-		/* MAC address in ledeinfo partition on SPI-NOR */
+		nvmem-cells = <&macaddr_ledeinfo_18 0>;
+		nvmem-cell-names = "mac-address";
 
 		fixed-link {
 			speed = <2500>;
@@ -153,6 +155,11 @@
 };
 
 &mdio_bus {
+	rtl8221b_phy: ethernet-phy@6 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <6>;
+	};
+
 	switch: switch@1f {
 		compatible = "mediatek,mt7531";
 		reg = <31>;
@@ -193,13 +200,10 @@
 			port@5 {
 				reg = <5>;
 				label = "wan";
+				nvmem-cells = <&macaddr_ledeinfo_18 1>;
+				nvmem-cell-names = "mac-address";
 				phy-mode = "2500base-x";
-
-				fixed-link {
-					speed = <2500>;
-					full-duplex;
-					pause;
-				};
+				phy-handle = <&rtl8221b_phy>;
 			};
 
 			port@6 {
@@ -285,8 +289,8 @@
 		reg = <0>;
 
 		spi-max-frequency = <52000000>;
-		spi-tx-buswidth = <4>;
-		spi-rx-buswidth = <4>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -335,6 +339,19 @@
 			partition@310000 {
 				label = "ledeinfo";
 				reg = <0x310000 0x010000>;
+				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_ledeinfo_18: macaddr@18 {
+						compatible = "mac-base";
+						reg = <0x18 0x6>;
+						#nvmem-cell-cells = <1>;
+					};
+				};
 			};
 
 			partition@320000 {
@@ -404,8 +421,22 @@
 };
 
 &wifi {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	status = "okay";
 	nvmem-cells = <&eeprom_factory>;
 	nvmem-cell-names = "eeprom";
+
+	band@0 {
+		reg = <0>;
+		nvmem-cells = <&macaddr_ledeinfo_18 2>;
+		nvmem-cell-names = "mac-address";
+	};
+
+	band@1 {
+		reg = <1>;
+		nvmem-cells = <&macaddr_ledeinfo_18 3>;
+		nvmem-cell-names = "mac-address";
+	};
 };
 

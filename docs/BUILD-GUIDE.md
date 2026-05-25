@@ -25,40 +25,71 @@ cd openwrt
 
 ## Add M01K43 Board Support
 
-### 1. Copy DTS
+The M01K43 is now in **OpenWrt mainline** (commit `db7d264e`). Building the
+stock image no longer requires copying a DTS into the tree or hand-patching
+`filogic.mk` -- the device, its DTS, and the `filogic.mk` device block already
+ship with OpenWrt.
+
+### Stock image
+
+Just select the device:
 
 ```bash
-cp /path/to/m01k43-openwrt/dts/mt7981b-alwaylink-m01k43.dts \
-   target/linux/mediatek/dts/
+make menuconfig
+#   Target System:  MediaTek Ralink ARM
+#   Subtarget:      Filogic 8xx (MT798x)
+#   Target Profile: AlwayLink M01K43
 ```
 
-Use the PMOD DTS (with gpio-export) for full modem power control, or the upstream version for a minimal build.
-
-### 2. Add Device Block to filogic.mk
-
-Edit `target/linux/mediatek/image/filogic.mk` and add the device block from `patches/filogic-device-block.txt` in alphabetical order (after `acelink`, before `acer`).
-
-### 3. Copy Overlay Files
-
-```bash
-cp -r /path/to/m01k43-openwrt/files/ files/
-```
-
-This includes uci-defaults scripts, signal LED monitor, recovery tools, and package feed config.
-
-### 4. Copy Banner (optional)
-
-To get the custom "Didneywhorl Edition" banner, edit `package/base-files/files/etc/banner` and add after the version line:
-```
- M01K43-PMOD | Didneywhorl Edition
-```
-
-### 5. Configure
+...or drop in the provided build config instead of clicking through menuconfig:
 
 ```bash
 cp /path/to/m01k43-openwrt/config/diffconfig .config
 make defconfig
 ```
+
+### PMOD daily-driver variant
+
+The PMOD build adds modem power control (`gpio-export` for GPIO 25 power / GPIO 2
+pwrkey) plus the signal-LED and recovery overlay. To build it:
+
+1. Replace the in-tree DTS with the PMOD DTS:
+
+   ```bash
+   cp /path/to/m01k43-openwrt/dts/mt7981b-alwaylink-m01k43.dts \
+      target/linux/mediatek/dts/
+   ```
+
+   ...or regenerate it from the in-tree (canonical) DTS with the generator:
+
+   ```bash
+   python3 /path/to/m01k43-openwrt/tools/generate-pmod-dts.py \
+     target/linux/mediatek/dts/mt7981b-alwaylink-m01k43.dts \
+     -o target/linux/mediatek/dts/mt7981b-alwaylink-m01k43.dts
+   ```
+
+2. Copy the overlay files:
+
+   ```bash
+   cp -r /path/to/m01k43-openwrt/files/ files/
+   ```
+
+   This includes uci-defaults scripts, signal LED monitor, recovery tools, and
+   package feed config.
+
+3. (optional) Custom banner -- edit `package/base-files/files/etc/banner` and
+   add after the version line:
+
+   ```
+    M01K43-PMOD | Didneywhorl Edition
+   ```
+
+4. Configure with the provided build config:
+
+   ```bash
+   cp /path/to/m01k43-openwrt/config/diffconfig .config
+   make defconfig
+   ```
 
 ## Build
 

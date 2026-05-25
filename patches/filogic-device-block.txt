@@ -1,14 +1,13 @@
+# NOTE: This device is now in OpenWrt mainline (commit db7d264e, PR openwrt/openwrt#22818).
+# Provided for reference / pre-merge trees only.
 define Device/alwaylink_m01k43
   DEVICE_VENDOR := AlwayLink
   DEVICE_MODEL := M01K43
   DEVICE_DTS := mt7981b-alwaylink-m01k43
   DEVICE_DTS_DIR := ../dts
   DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware \
-    kmod-usb3 kmod-usb-wdm kmod-wwan \
-    kmod-mhi-bus kmod-mhi-pci-generic kmod-mhi-wwan-mbim kmod-mhi-wwan-ctrl \
-    kmod-usb-serial-option kmod-usb-net-cdc-ether kmod-usb-net-cdc-mbim kmod-usb-net-qmi-wwan \
-    usbutils minicom umbim uqmi \
-    luci luci-proto-qmi uboot-envtools
+    kmod-usb3 kmod-usb-serial-option kmod-usb-net-qmi-wwan uqmi \
+    kmod-phy-realtek uboot-envtools
   KERNEL_IN_UBI := 1
   UBINIZE_OPTS := -E 5
   BLOCKSIZE := 128k
